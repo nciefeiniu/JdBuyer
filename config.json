@@ -1,6 +1,8 @@
 {
-    "skuId": "100015253061",
-    "areaId": "1_2901_4135",
-    "count": 1,
-    "stockInterval": 3
+  "skuId": "100039648026",
+  "areaId": "重庆，上海",
+  "count": 1,
+  "stockInterval": 40,
+  "pushToken": "a53e7c1d4bbf4824a639de77fc368a9a",
+  "freq": 41
 }

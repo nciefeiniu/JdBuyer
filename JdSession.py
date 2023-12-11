@@ -6,6 +6,8 @@ import pickle
 import random
 import time
 import requests
+import subprocess
+
 
 from lxml import etree
 
@@ -153,16 +155,36 @@ class Session(object):
         :param skuId
         :return 商品信息（下单模式、库存）
         """
-        url = 'https://item-soa.jd.com/getWareBusiness'
-        payload = {
-            'skuId': skuId,
-            'area': areaId,
-            'num': skuNum
+        headers = {
+            'User-Agent': self.userAgent,
+            'x-referer-page': 'https://item.jd.com/{}.html'.format(skuId),
+            'Referer': 'https://item.jd.com/',
         }
-        resp = requests.get(url=url, params=payload, headers=self.headers)
+        params = {
+            'appid': 'pc-item-soa',
+            'functionId': 'pc_detailpage_wareBusiness',
+            'client': 'pc',
+            'clientVersion': '1.0.0',
+            'loginType': 3,
+            't': int(time.time() * 1000),
+            'body': json.dumps({
+                "skuId": skuId,
+                "area": areaId,
+                "paramJson": "{\"platform2\":\"1\",\"specialAttrStr\":\"p0ppppppppp2p1ppppppppppppp\",\"skuMarkStr\":\"00\"}",
+                "num": skuNum,
+                "bbTraffic": ""
+            }),
+        }
+        # js_path = os.path.join(
+        #     absPath, './js/h5st.j')
+        node_command = ["node", './js/h5st.js', '', params['body'], self.username]
+        output = subprocess.check_output(node_command)
+        params = output.decode("utf-8").strip()
+
+        resp = self.sess.get(url='https://api.m.jd.com/?' + params, headers=headers)
         return resp
 
-    def fetchItemDetail(self, skuId):
+    def fetchItemDetail(self, skuId, area_id=None):
         """ 解析商品信息
         :param skuId
         """
