@@ -6,6 +6,8 @@ import json
 import requests
 import traceback
 
+from datetime import datetime
+
 from PySide6.QtCore import Qt, QThread, Signal, QDateTime
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import (
@@ -333,6 +335,7 @@ class BuyerThread(QThread):
         content = ''  # 改成你要的正文内容
         for row in messages:
             content += f'#### 商品ID：{row["sku"]} \n' \
+                       f'> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}' \
                        f'- 地区：{row["area"]} \n' \
                        f'- 是否有货：{row["stock"]} \n' \
                        f'- 链接：{row["link"]} \n' \
