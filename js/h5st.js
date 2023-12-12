@@ -931,10 +931,6 @@ const get_sign = async function (ua, body, username) {
         ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
     }
 
-    // console.log('ua: ', ua)
-    // console.log('body: ', body)
-    // console.log('username: ', username)
-
     var new_H5ST = new H5ST({
         "appId": "fb5df",
         "appid": "pc-item-soa",

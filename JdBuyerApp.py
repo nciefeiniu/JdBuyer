@@ -275,9 +275,14 @@ class TicketThread(QThread):
             self.ticketSignal.emit('二维码信息校验失败')
             return
 
-        self.ticketSignal.emit('成功')
-        self.session.isLogin = True
-        self.session.saveCookies()
+        self.session.isLogin = self.session._validateCookies()
+        print('登录：', self.session.isLogin)
+        print('cookie: ', self.session.sess.cookies)
+        if self.session.isLogin:
+            self.ticketSignal.emit('成功')
+            self.session.saveCookies()
+        else:
+            self.ticketSignal.emit('登录失败')
 
 
 # 商品监控线程
@@ -335,7 +340,7 @@ class BuyerThread(QThread):
         content = ''  # 改成你要的正文内容
         for row in messages:
             content += f'#### 商品ID：{row["sku"]} \n' \
-                       f'> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}' \
+                       f'> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} \n' \
                        f'- 地区：{row["area"]} \n' \
                        f'- 是否有货：{row["stock"]} \n' \
                        f'- 链接：{row["link"]} \n' \

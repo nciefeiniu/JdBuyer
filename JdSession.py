@@ -8,11 +8,17 @@ import time
 import requests
 import subprocess
 
+from bs4 import BeautifulSoup
+from functools import partial
+
+subprocess.Popen = partial(subprocess.Popen, encoding="utf-8")
+
+import execjs
 
 from lxml import etree
 
 DEFAULT_TIMEOUT = 10
-DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36'
+DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
 
 if getattr(sys, 'frozen', False):
     absPath = os.path.dirname(os.path.abspath(sys.executable))
@@ -67,11 +73,19 @@ class Session(object):
         :return: cookies是否有效 True/False
         """
         url = 'https://order.jd.com/center/list.action'
-        payload = {
-            'rid': str(int(time.time() * 1000)),
-        }
+        # payload = {
+        #     'rid': str(int(time.time() * 1000)),
+        # }
         try:
-            resp = self.sess.get(url=url, params=payload,
+            resp = self.sess.get(url=url,
+                                 headers={
+                                     'user-agent': self.userAgent,
+                                     'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                                     'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+                                     'cache-control': 'no-cache',
+                                     'authority': 'order.jd.com',
+                                 },
+                                 # params=payload,
                                  allow_redirects=False)
             if self.respStatus(resp):
                 return True
@@ -108,6 +122,7 @@ class Session(object):
 
     # 获取Ticket
     def getQRcodeTicket(self):
+        print('get QRcode Ticket Cookie: ', self.sess.cookies)
         url = 'https://qr.m.jd.com/check'
         payload = {
             'appid': '133',
@@ -148,6 +163,28 @@ class Session(object):
         else:
             return False
 
+    def get_params_json(self, sku_id: str):
+        url = f'https://item.jd.com/{sku_id}.html'
+
+        headers = {
+            'accept': 'application/json, text/javascript, */*; q=0.01',
+            'accept-language': 'zh-CN,zh;q=0.9',
+            'cache-control': 'no-cache',
+            'origin': 'https://item.jd.com',
+            'pragma': 'no-cache',
+            'referer': 'https://item.jd.com/',
+            'user-agent': self.userAgent
+        }
+        resp = requests.get(url, headers=headers)
+
+        soup = BeautifulSoup(resp.text, 'lxml')
+        for js in soup.find_all('script'):
+            if js.string and 'paramJson' in js.string:
+                # print(js.string)
+                exc = execjs.compile(js.string)
+                return exc.eval('pageConfig.product.paramJson')
+        return ''
+
     ############## 商品方法 #############
     # 获取商品详情信息
     def getItemDetail(self, skuId, skuNum=1, areaId=1):
@@ -159,7 +196,18 @@ class Session(object):
             'User-Agent': self.userAgent,
             'x-referer-page': 'https://item.jd.com/{}.html'.format(skuId),
             'Referer': 'https://item.jd.com/',
+            'x-rp-client': 'h5_1.0.0',
+            'origin': 'https://item.jd.com',
+            'authority': 'api.m.jd.com',
+            'accept': 'application/json, text/javascript, */*; q=0.01',
+            'accept-language': 'zh-CN,zh;q=0.9',
+            'cache-control': 'no-cache',
         }
+        params_json = self.get_params_json(skuId)
+        if not params_json:
+            print('获取params_json参数失败')
+            return
+
         params = {
             'appid': 'pc-item-soa',
             'functionId': 'pc_detailpage_wareBusiness',
@@ -170,18 +218,19 @@ class Session(object):
             'body': json.dumps({
                 "skuId": skuId,
                 "area": areaId,
-                "paramJson": "{\"platform2\":\"1\",\"specialAttrStr\":\"p0ppppppppp2p1ppppppppppppp\",\"skuMarkStr\":\"00\"}",
+                "paramJson": params_json,
                 "num": skuNum,
                 "bbTraffic": ""
             }),
         }
-        # js_path = os.path.join(
-        #     absPath, './js/h5st.j')
         node_command = ["node", './js/h5st.js', '', params['body'], self.username]
         output = subprocess.check_output(node_command)
-        params = output.decode("utf-8").strip()
+        if not isinstance(output, str):
+            params = output.decode("utf-8").strip()
+        else:
+            params = output
 
-        resp = self.sess.get(url='https://api.m.jd.com/?' + params, headers=headers)
+        resp = self.sess.get(url='https://api.m.jd.com/?' + params.strip(), headers=headers)
         return resp
 
     def fetchItemDetail(self, skuId, area_id=None):
@@ -254,7 +303,8 @@ class Session(object):
         data = {
             'functionId': 'pcCart_jc_cartAdd',
             'appid': 'JDC_mall_cart',
-            'body': '{\"operations\":[{\"carttype\":1,\"TheSkus\":[{\"Id\":\"' + skuId + '\",\"num\":' + str(skuNum) + '}]}]}',
+            'body': '{\"operations\":[{\"carttype\":1,\"TheSkus\":[{\"Id\":\"' + skuId + '\",\"num\":' + str(
+                skuNum) + '}]}]}',
             'loginType': 3
         }
 
@@ -278,8 +328,8 @@ class Session(object):
             'referer': 'https://cart.jd.com'
         }
 
-        body = '{\"operations\":[{\"TheSkus\":[{\"Id\":\"'+skuId+'\",\"num\":'+str(
-            skuNum)+',\"skuUuid\":\"'+skuUid+'\",\"useUuid\":false}]}],\"serInfo\":{\"area\":\"'+areaId+'\"}}'
+        body = '{\"operations\":[{\"TheSkus\":[{\"Id\":\"' + skuId + '\",\"num\":' + str(
+            skuNum) + ',\"skuUuid\":\"' + skuUid + '\",\"useUuid\":false}]}],\"serInfo\":{\"area\":\"' + areaId + '\"}}'
         data = {
             'functionId': 'pcCart_jc_changeSkuNum',
             'appid': 'JDC_mall_cart',
@@ -391,9 +441,9 @@ class Session(object):
                 # remove '寄送至： ' from the begin
                 'address': html.xpath("//span[@id='sendAddr']")[0].text[5:],
                 # remove '收件人:' from the begin
-                'receiver':  html.xpath("//span[@id='sendMobile']")[0].text[4:],
+                'receiver': html.xpath("//span[@id='sendMobile']")[0].text[4:],
                 # remove '￥' from the begin
-                'total_price':  html.xpath("//span[@id='sumPayPriceId']")[0].text[1:],
+                'total_price': html.xpath("//span[@id='sumPayPriceId']")[0].text[1:],
                 'items': []
             }
             return order_detail
@@ -429,7 +479,7 @@ class Session(object):
                 # remove '寄送至： ' from the begin
                 'address': html.xpath("//span[@class='addr-info']")[0].text,
                 # remove '收件人:' from the begin
-                'receiver':  html.xpath("//span[@class='addr-name']")[0].text,
+                'receiver': html.xpath("//span[@class='addr-name']")[0].text,
             }
             return order_detail
         except Exception as e:
@@ -559,10 +609,11 @@ class Session(object):
 
 
 if __name__ == '__main__':
-
-    skuId = '100015253059'
+    skuId = '10058136479265'
     areaId = '1_2901_55554_0'
     skuNum = 1
 
     session = Session()
+    print(session._validateCookies())
+    print(session.sess.cookies.get_dict())
     print(session.getItemDetail(skuId, skuNum, areaId).text)
