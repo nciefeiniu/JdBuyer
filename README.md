@@ -17,3 +17,7 @@ pip install -r requirements.txt
 python JdBuyerApp.py
 ```
 
+5. PushToken 怎么获取
+
+[https://www.pushplus.plus/push1.html](https://www.pushplus.plus/push1.html)
+
