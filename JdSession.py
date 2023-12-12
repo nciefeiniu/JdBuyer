@@ -15,7 +15,7 @@ subprocess.Popen = partial(subprocess.Popen, encoding="utf-8")
 
 import execjs
 
-from lxml import etree
+# from lxml import etree
 
 DEFAULT_TIMEOUT = 10
 DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
@@ -177,7 +177,7 @@ class Session(object):
         }
         resp = self.sess.get(url, headers=headers)
 
-        soup = BeautifulSoup(resp.text, 'lxml')
+        soup = BeautifulSoup(resp.text, 'html5lib')
         for js in soup.find_all('script'):
             if js.string and 'paramJson' in js.string:
                 # print(js.string)
@@ -413,77 +413,77 @@ class Session(object):
                     time.sleep(interval)
         return False
 
-    def getCheckoutPage(self):
-        """获取订单结算页面信息
-        :return: 结算信息 dict
-        """
-        url = 'http://trade.jd.com/shopping/order/getOrderInfo.action'
-        # url = 'https://cart.jd.com/gotoOrder.action'
-        payload = {
-            'rid': str(int(time.time() * 1000)),
-        }
-        headers = {
-            'User-Agent': self.userAgent,
-            'Referer': 'https://cart.jd.com/cart',
-        }
-        try:
-            resp = self.sess.get(url=url, params=payload, headers=headers)
-            if not self.respStatus(resp):
-                return
-
-            html = etree.HTML(resp.text)
-            self.eid = html.xpath("//input[@id='eid']/@value")
-            self.fp = html.xpath("//input[@id='fp']/@value")
-            self.risk_control = html.xpath("//input[@id='riskControl']/@value")
-            self.track_id = html.xpath("//input[@id='TrackID']/@value")
-
-            order_detail = {
-                # remove '寄送至： ' from the begin
-                'address': html.xpath("//span[@id='sendAddr']")[0].text[5:],
-                # remove '收件人:' from the begin
-                'receiver': html.xpath("//span[@id='sendMobile']")[0].text[4:],
-                # remove '￥' from the begin
-                'total_price': html.xpath("//span[@id='sumPayPriceId']")[0].text[1:],
-                'items': []
-            }
-            return order_detail
-        except Exception as e:
-            return
-
-    def getPreSallCheckoutPage(self, skuId, skuNum=1):
-        """获取预售商品结算页面信息
-        :return: 结算信息 dict
-        """
-        url = 'https://cart.jd.com/cart/dynamic/gateForSubFlow.action'
-        # url = 'https://cart.jd.com/gotoOrder.action'
-        payload = {
-            'wids': skuId,
-            'nums': skuNum,
-            'subType': 32
-        }
-        headers = {
-            'User-Agent': self.userAgent,
-            'Referer': 'https://cart.jd.com/cart',
-        }
-        try:
-            resp = self.sess.get(url=url, params=payload, headers=headers)
-            if not self.respStatus(resp):
-                return
-
-            html = etree.HTML(resp.text)
-            self.eid = html.xpath("//input[@id='eid']/@value")
-            self.fp = html.xpath("//input[@id='fp']/@value")
-            self.risk_control = html.xpath("//input[@id='riskControl']/@value")
-            self.track_id = html.xpath("//input[@id='TrackID']/@value")
-            order_detail = {
-                # remove '寄送至： ' from the begin
-                'address': html.xpath("//span[@class='addr-info']")[0].text,
-                # remove '收件人:' from the begin
-                'receiver': html.xpath("//span[@class='addr-name']")[0].text,
-            }
-            return order_detail
-        except Exception as e:
-            return
+    # def getCheckoutPage(self):
+    #     """获取订单结算页面信息
+    #     :return: 结算信息 dict
+    #     """
+    #     url = 'http://trade.jd.com/shopping/order/getOrderInfo.action'
+    #     # url = 'https://cart.jd.com/gotoOrder.action'
+    #     payload = {
+    #         'rid': str(int(time.time() * 1000)),
+    #     }
+    #     headers = {
+    #         'User-Agent': self.userAgent,
+    #         'Referer': 'https://cart.jd.com/cart',
+    #     }
+    #     try:
+    #         resp = self.sess.get(url=url, params=payload, headers=headers)
+    #         if not self.respStatus(resp):
+    #             return
+    #
+    #         html = etree.HTML(resp.text)
+    #         self.eid = html.xpath("//input[@id='eid']/@value")
+    #         self.fp = html.xpath("//input[@id='fp']/@value")
+    #         self.risk_control = html.xpath("//input[@id='riskControl']/@value")
+    #         self.track_id = html.xpath("//input[@id='TrackID']/@value")
+    #
+    #         order_detail = {
+    #             # remove '寄送至： ' from the begin
+    #             'address': html.xpath("//span[@id='sendAddr']")[0].text[5:],
+    #             # remove '收件人:' from the begin
+    #             'receiver': html.xpath("//span[@id='sendMobile']")[0].text[4:],
+    #             # remove '￥' from the begin
+    #             'total_price': html.xpath("//span[@id='sumPayPriceId']")[0].text[1:],
+    #             'items': []
+    #         }
+    #         return order_detail
+    #     except Exception as e:
+    #         return
+    #
+    # def getPreSallCheckoutPage(self, skuId, skuNum=1):
+    #     """获取预售商品结算页面信息
+    #     :return: 结算信息 dict
+    #     """
+    #     url = 'https://cart.jd.com/cart/dynamic/gateForSubFlow.action'
+    #     # url = 'https://cart.jd.com/gotoOrder.action'
+    #     payload = {
+    #         'wids': skuId,
+    #         'nums': skuNum,
+    #         'subType': 32
+    #     }
+    #     headers = {
+    #         'User-Agent': self.userAgent,
+    #         'Referer': 'https://cart.jd.com/cart',
+    #     }
+    #     try:
+    #         resp = self.sess.get(url=url, params=payload, headers=headers)
+    #         if not self.respStatus(resp):
+    #             return
+    #
+    #         html = etree.HTML(resp.text)
+    #         self.eid = html.xpath("//input[@id='eid']/@value")
+    #         self.fp = html.xpath("//input[@id='fp']/@value")
+    #         self.risk_control = html.xpath("//input[@id='riskControl']/@value")
+    #         self.track_id = html.xpath("//input[@id='TrackID']/@value")
+    #         order_detail = {
+    #             # remove '寄送至： ' from the begin
+    #             'address': html.xpath("//span[@class='addr-info']")[0].text,
+    #             # remove '收件人:' from the begin
+    #             'receiver': html.xpath("//span[@class='addr-name']")[0].text,
+    #         }
+    #         return order_detail
+    #     except Exception as e:
+    #         return
 
     def submitOrder(self, isYushou=False):
         """提交订单
