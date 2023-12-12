@@ -175,7 +175,7 @@ class Session(object):
             'referer': 'https://item.jd.com/',
             'user-agent': self.userAgent
         }
-        resp = requests.get(url, headers=headers)
+        resp = self.sess.get(url, headers=headers)
 
         soup = BeautifulSoup(resp.text, 'lxml')
         for js in soup.find_all('script'):
