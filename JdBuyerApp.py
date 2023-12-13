@@ -24,6 +24,8 @@ from PySide6.QtWidgets import (
 from timer import Timer
 from JdSession import Session
 
+TOPIC = None
+
 NUM_LABEL_FORMAT = '商品购买数量[{0}]个'
 STOCK_LABEL_FORMAT = '库存查询间隔[{0}]分'
 DATA_FORMAT = '%H:%M:%S'
@@ -353,6 +355,8 @@ class BuyerThread(QThread):
             "content": content,
             'template': 'markdown'
         }
+        if TOPIC:
+            data['topic'] = TOPIC
         body = json.dumps(data).encode(encoding='utf-8')
         headers = {'Content-Type': 'application/json'}
         resp = requests.post(url, data=body, headers=headers)
